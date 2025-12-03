@@ -14,6 +14,13 @@ cmake --build .
 
 默认会生成 `VirtualKeyboardWidget` 静态库；若找到 Qt Designer 模块，还会同时生成可在设计器调色板中拖拽的 `VirtualKeyboardPlugin`。
 
+若要让 Designer 自动识别该控件，请在安装阶段将插件复制或安装到 Qt 的 `plugins/designer` 目录，可通过变量 `QT_DESIGNER_PLUGIN_PATH` 定制：
+
+```bash
+cmake .. -DQT_DESIGNER_PLUGIN_PATH=/path/to/Qt/plugins/designer
+cmake --build . --target install
+```
+
 ## 属性与接口（VirtualKeyboardWidget）
 
 下列属性均可在代码或 Qt Designer 属性面板中配置：
