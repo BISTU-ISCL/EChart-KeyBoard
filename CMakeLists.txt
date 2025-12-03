@@ -7,10 +7,13 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 是否编译演示程序，便于快速体验控件
+option(BUILD_VIRTUAL_KEYBOARD_DEMO "Build demo application for VirtualKeyboardWidget" ON)
+
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Gui)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Gui)
 
-# Designer plugin is optional; if available we expose the widget in Qt Designer.
+# Designer 插件可选，若找到 Qt Designer 模块则编译并在设计器中暴露控件
 find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Designer QUIET)
 
 add_library(VirtualKeyboardWidget STATIC
@@ -30,6 +33,17 @@ target_link_libraries(VirtualKeyboardWidget PUBLIC
 target_compile_definitions(VirtualKeyboardWidget PRIVATE
     QT_DEPRECATED_WARNINGS
 )
+
+# 示例程序，展示控件配置与统计效果
+if (BUILD_VIRTUAL_KEYBOARD_DEMO)
+    add_executable(VirtualKeyboardDemo
+        examples/demo_main.cpp
+    )
+    target_link_libraries(VirtualKeyboardDemo PRIVATE
+        VirtualKeyboardWidget
+        Qt${QT_VERSION_MAJOR}::Widgets
+    )
+endif()
 
 if (Qt${QT_VERSION_MAJOR}Designer_FOUND)
     add_library(VirtualKeyboardPlugin MODULE

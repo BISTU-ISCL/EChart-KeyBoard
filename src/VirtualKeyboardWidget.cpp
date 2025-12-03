@@ -8,6 +8,7 @@
 #include <algorithm>
 
 namespace {
+// 生成功能键行
 QList<KeySpec> makeTopRow() {
     return {
         {"Esc", Qt::Key_Escape},
@@ -19,6 +20,7 @@ QList<KeySpec> makeTopRow() {
     };
 }
 
+// 生成数字行
 QList<KeySpec> makeNumberRow() {
     return {
         {"`", Qt::Key_QuoteLeft},
@@ -29,6 +31,7 @@ QList<KeySpec> makeNumberRow() {
     };
 }
 
+// 生成 Q 行
 QList<KeySpec> makeQRow() {
     return {
         {"Tab", Qt::Key_Tab, 2},
@@ -38,6 +41,7 @@ QList<KeySpec> makeQRow() {
     };
 }
 
+// 生成 A 行
 QList<KeySpec> makeARow() {
     return {
         {"Caps", Qt::Key_CapsLock, 2},
@@ -48,6 +52,7 @@ QList<KeySpec> makeARow() {
     };
 }
 
+// 生成 Z 行
 QList<KeySpec> makeZRow() {
     return {
         {"Shift", Qt::Key_Shift, 3},
@@ -57,6 +62,7 @@ QList<KeySpec> makeZRow() {
     };
 }
 
+// 生成空格与方向键行
 QList<KeySpec> makeBottomRow() {
     return {
         {"Ctrl", Qt::Key_Control, 2},
@@ -74,11 +80,13 @@ QList<KeySpec> makeBottomRow() {
 
 VirtualKeyboardWidget::VirtualKeyboardWidget(QWidget *parent)
     : QWidget(parent) {
+    // 初始化网格布局
     m_layout = new QGridLayout(this);
     m_layout->setSpacing(4);
     m_layout->setContentsMargins(6, 6, 6, 6);
     setLayout(m_layout);
 
+    // 创建所有键位并添加到布局
     QList<QList<KeySpec>> rows = {makeTopRow(), makeNumberRow(), makeQRow(), makeARow(), makeZRow(), makeBottomRow()};
 
     for (int row = 0; row < rows.size(); ++row) {
@@ -89,16 +97,19 @@ VirtualKeyboardWidget::VirtualKeyboardWidget(QWidget *parent)
         }
     }
 
+    // 默认字体与大小
     setKeyFont(QFont("Inter", 10));
     setMinimumWidth(720);
     setMinimumHeight(260);
 
+    // 需要监听硬件键盘时安装事件过滤器
     if (m_trackPhysicalKeyboard) {
         qApp->installEventFilter(this);
     }
 }
 
 VirtualKeyboardWidget::~VirtualKeyboardWidget() {
+    // 析构时移除事件过滤器
     if (m_trackPhysicalKeyboard) {
         qApp->removeEventFilter(this);
     }
@@ -113,6 +124,7 @@ void VirtualKeyboardWidget::setTrackPhysicalKeyboard(bool enabled) {
         return;
     }
     m_trackPhysicalKeyboard = enabled;
+    // 根据开关安装/卸载事件过滤器
     if (enabled) {
         qApp->installEventFilter(this);
     } else {
@@ -137,6 +149,7 @@ void VirtualKeyboardWidget::setHotColor(const QColor &color) {
 
 void VirtualKeyboardWidget::setHighlightColor(const QColor &color) {
     m_highlightColor = color;
+    // 同步到所有按钮
     for (auto button : m_keyButtons) {
         if (button) {
             button->setHighlightColor(color);
@@ -146,6 +159,7 @@ void VirtualKeyboardWidget::setHighlightColor(const QColor &color) {
 
 void VirtualKeyboardWidget::setKeyFont(const QFont &font) {
     m_keyFont = font;
+    // 同步字体到所有键
     for (auto button : m_keyButtons) {
         if (button) {
             button->setFont(font);
@@ -157,6 +171,7 @@ void VirtualKeyboardWidget::recordKey(int qtKey) {
     if (!m_keyButtons.contains(qtKey)) {
         return;
     }
+    // 计数 + 高亮 + 刷新热力图
     m_heatCounter[qtKey] += 1;
     if (auto button = m_keyButtons.value(qtKey)) {
         button->triggerGlow();
@@ -182,6 +197,7 @@ bool VirtualKeyboardWidget::eventFilter(QObject *watched, QEvent *event) {
 
     if (event->type() == QEvent::KeyPress) {
         auto *keyEvent = static_cast<QKeyEvent *>(event);
+        // 捕获物理键盘按下并记录
         recordKey(keyEvent->key());
     }
     return QWidget::eventFilter(watched, event);
@@ -197,12 +213,14 @@ void VirtualKeyboardWidget::addKey(int row, int column, const KeySpec &spec) {
     m_layout->addWidget(button, row, column, spec.rowSpan, spec.columnSpan);
     m_keyButtons.insertMulti(spec.qtKey, button);
 
+    // 点击虚拟键也会产生一次记录
     connect(button, &QPushButton::clicked, this, [this, spec]() {
         recordKey(spec.qtKey);
     });
 }
 
 void VirtualKeyboardWidget::refreshHeatMap() {
+    // 取出最大计数，避免除 0
     int maxCount = 1;
     if (!m_heatCounter.isEmpty()) {
         maxCount = std::max(1, *std::max_element(m_heatCounter.begin(), m_heatCounter.end()));
@@ -215,6 +233,7 @@ void VirtualKeyboardWidget::refreshHeatMap() {
             continue;
         }
 
+        // 若关闭热力图则重置为 0，保持纯色
         int count = m_heatMapEnabled ? m_heatCounter.value(key, 0) : 0;
         button->setHeat(count, maxCount);
         button->setHeatColors(m_coldColor, m_hotColor);

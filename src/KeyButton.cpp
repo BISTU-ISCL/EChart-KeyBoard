@@ -5,9 +5,11 @@
 
 KeyButton::KeyButton(const QString &text, QWidget *parent)
     : QPushButton(text, parent) {
+    // 基础外观与布局设定
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     setCheckable(false);
     setMinimumSize(32, 32);
+    // 设置渐隐计时器频率
     m_glowTimer.setInterval(30);
     connect(&m_glowTimer, &QTimer::timeout, this, &KeyButton::onFadeStep);
     updateVisualState();
@@ -15,12 +17,14 @@ KeyButton::KeyButton(const QString &text, QWidget *parent)
 
 void KeyButton::triggerGlow(int durationMs) {
     Q_UNUSED(durationMs);
+    // 重置高亮强度并开启渐隐计时
     m_glowLevel = 1.0;
     m_glowTimer.start();
     updateVisualState();
 }
 
 void KeyButton::setHeat(int count, int maxCount) {
+    // 记录当前键计数与全局最大计数
     m_heat = count;
     m_heatMax = qMax(1, maxCount);
     updateVisualState();
@@ -43,6 +47,7 @@ void KeyButton::setBaseTextColor(const QColor &color) {
 }
 
 void KeyButton::setGlowLevel(qreal level) {
+    // 仅当变化显著时才更新，避免多余刷新
     if (qFuzzyCompare(level, m_glowLevel)) {
         return;
     }
@@ -53,6 +58,7 @@ void KeyButton::setGlowLevel(qreal level) {
 
 void KeyButton::onFadeStep() {
     const qreal step = 0.04;
+    // 每个周期衰减 glowLevel，直至停止计时器
     if (m_glowLevel <= step) {
         m_glowLevel = 0.0;
         m_glowTimer.stop();
@@ -63,12 +69,15 @@ void KeyButton::onFadeStep() {
 }
 
 void KeyButton::updateVisualState() {
+    // 热力图插值系数（0~1）
     const qreal heatFactor = qBound<qreal>(0.0, static_cast<qreal>(m_heat) / static_cast<qreal>(m_heatMax), 1.0);
     QColor background = mixColor(m_coldColor, m_hotColor, heatFactor);
 
+    // 高亮光晕透明度随 glowLevel 变化
     QColor glow = m_highlightColor;
     glow.setAlphaF(qBound<qreal>(0.0, m_glowLevel, 1.0));
 
+    // 使用样式表组合背景、边框与文本色
     const QString style = QString(
         "QPushButton {"
         "  background-color: rgba(%1, %2, %3, 210);"
@@ -97,6 +106,7 @@ void KeyButton::updateVisualState() {
 }
 
 QColor KeyButton::mixColor(const QColor &a, const QColor &b, qreal factor) const {
+    // 线性插值返回中间色
     factor = qBound<qreal>(0.0, factor, 1.0);
     return QColor(
         static_cast<int>(a.red() + (b.red() - a.red()) * factor),

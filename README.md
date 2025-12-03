@@ -67,3 +67,20 @@ keyboard->clearStatistics();
 ```
 
 控件启用事件过滤后，任何传递到应用的键盘事件都会在虚拟键盘上高亮对应键位并计数。热力图会根据最大计数自动缩放。
+
+## Demo 运行
+
+项目默认开启 `BUILD_VIRTUAL_KEYBOARD_DEMO=ON`，编译后会生成 `VirtualKeyboardDemo` 可执行文件，包含中文注释的使用示例：
+
+```bash
+mkdir -p build && cd build
+cmake .. -DBUILD_VIRTUAL_KEYBOARD_DEMO=ON
+cmake --build .
+./VirtualKeyboardDemo
+```
+
+演示窗口支持：
+
+- 监听真实键盘并呈现高亮渐隐。
+- “模拟按键”按钮触发 `recordKey`，便于快速观察热力图变化。
+- “清空统计”按钮调用 `clearStatistics`，重置计数与热力图。

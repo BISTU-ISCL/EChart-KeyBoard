@@ -8,6 +8,7 @@ class VirtualKeyboardPlugin : public QObject, public QDesignerCustomWidgetInterf
     Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QDesignerCustomWidgetInterface")
 
 public:
+    // 简单的设计器插件，暴露 VirtualKeyboardWidget 供拖拽使用
     VirtualKeyboardPlugin(QObject *parent = nullptr) : QObject(parent) {}
 
     bool isContainer() const override { return false; }
@@ -28,6 +29,7 @@ public:
     QString group() const override { return "Custom Widgets"; }
     QString includeFile() const override { return "VirtualKeyboardWidget.h"; }
     QString name() const override { return "VirtualKeyboardWidget"; }
+    // 提示文案使用英文，以便设计器一致性
     QString toolTip() const override { return "Full keyboard widget with heat map statistics"; }
     QString whatsThis() const override { return "Visual keyboard that reacts to physical keystrokes and exposes heat map statistics."; }
     QWidget *createWidget(QWidget *parent) override { return new VirtualKeyboardWidget(parent); }
@@ -37,6 +39,7 @@ public:
     }
 
 private:
+    // 初始化标记
     bool m_initialized {false};
 };
 
