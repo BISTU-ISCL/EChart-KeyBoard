@@ -1,10 +1,10 @@
 # EChart-KeyBoard
 
-A customizable Qt widget that renders a full keyboard, reacts to physical key presses, and visualizes usage statistics with fading highlights and a heat map. The widget is also exposed as a Qt Designer plugin when the `Designer` module is available.
+一个可嵌入 Qt 应用及 Qt Designer 的全键盘控件。支持监听真实键盘事件、按键高亮渐隐、热力图统计等能力，并提供丰富的自定义属性，方便在界面库中直接拖拽使用。
 
-## Building
+## 构建
 
-This project uses CMake and supports both Qt 5 and Qt 6.
+项目使用 CMake，兼容 Qt5/Qt6。
 
 ```bash
 mkdir -p build && cd build
@@ -12,31 +12,82 @@ cmake ..
 cmake --build .
 ```
 
-The `VirtualKeyboardWidget` static library is always built. If the Qt Designer module is found, a `VirtualKeyboardPlugin` module is also produced so the widget can be dragged from the Designer palette.
+默认会生成 `VirtualKeyboardWidget` 静态库；若找到 Qt Designer 模块，还会同时生成可在设计器调色板中拖拽的 `VirtualKeyboardPlugin`。
 
-## Using the widget
+若要让 Designer 自动识别该控件，请在安装阶段将插件复制或安装到 Qt 的 `plugins/designer` 目录，可通过变量 `QT_DESIGNER_PLUGIN_PATH` 定制：
+
+```bash
+cmake .. -DQT_DESIGNER_PLUGIN_PATH=/path/to/Qt/plugins/designer
+cmake --build . --target install
+```
+
+## 属性与接口（VirtualKeyboardWidget）
+
+下列属性均可在代码或 Qt Designer 属性面板中配置：
+
+| 属性 | 类型 | 说明 | 默认值 |
+| --- | --- | --- | --- |
+| `trackPhysicalKeyboard` | `bool` | 是否监听物理键盘事件并同步高亮、计数 | `true` |
+| `heatMapEnabled` | `bool` | 是否启用热力图着色 | `true` |
+| `coldColor` | `QColor` | 热力图最低频率颜色 | `QColor(18, 26, 38)` |
+| `hotColor` | `QColor` | 热力图最高频率颜色 | `QColor(126, 192, 255)` |
+| `highlightColor` | `QColor` | 按键被触发时的高亮颜色 | `QColor(255, 65, 130)` |
+
+常用接口（方法/槽）：
+
+- `void setKeyFont(const QFont &font)`: 设置键帽字体。
+- `void recordKey(int qtKey)`: 手动记录一次按键（如远端事件或回放）。
+- `void setHeatSamples(const QHash<int, int> &samples)`: 批量设置按键计数，便于恢复或注入统计数据。
+- `void clearStatistics()`: 清空所有统计并重置热力图。
+- `bool eventFilter(QObject *watched, QEvent *event)`: 内部安装的事件过滤器，开启 `trackPhysicalKeyboard` 后自动响应硬件按键。
+
+## 自定义视觉
+
+- 高亮渐隐：任何一次按键调用 `recordKey` 或硬件键入都会触发对应键帽的光晕动画，亮度随时间衰减。
+- 热力图：`heatMapEnabled` 打开时，按键背景会按累计计数在 `coldColor` 与 `hotColor` 之间插值；计数越高颜色越接近 `hotColor`。
+- 字体/文本色：通过 `setKeyFont` 调整键帽字体，颜色会在内部根据热力图和高亮混合，保持可读性。
+
+## 使用示例
 
 ```cpp
 #include "VirtualKeyboardWidget.h"
 
 VirtualKeyboardWidget *keyboard = new VirtualKeyboardWidget(parent);
-keyboard->setTrackPhysicalKeyboard(true);  // react to hardware key presses
-keyboard->setHeatMapEnabled(true);         // colorize keys based on usage
+keyboard->setTrackPhysicalKeyboard(true);   // 监听硬件键盘
+keyboard->setHeatMapEnabled(true);          // 开启热力图
 keyboard->setHighlightColor(QColor(255, 102, 170));
 keyboard->setColdColor(QColor(18, 26, 38));
 keyboard->setHotColor(QColor(120, 190, 255));
+keyboard->setKeyFont(QFont("Noto Sans", 10));
 
-// Programmatically record key activity (for remote events or replay)
+// 手动记录按键
 keyboard->recordKey(Qt::Key_A);
 
-// Provide an entire histogram at once
+// 批量注入统计
 QHash<int, int> samples;
 samples[Qt::Key_Space] = 42;
 samples[Qt::Key_Return] = 17;
 keyboard->setHeatSamples(samples);
 
-// Reset counts
+// 清空统计
 keyboard->clearStatistics();
 ```
 
-The widget installs an event filter (when enabled) so any key press that reaches the application will briefly glow the matching key and increment statistics. Heat map colors scale automatically based on the most frequently used key.
+控件启用事件过滤后，任何传递到应用的键盘事件都会在虚拟键盘上高亮对应键位并计数。热力图会根据最大计数自动缩放。
+
+## Demo 运行
+
+项目默认开启 `BUILD_VIRTUAL_KEYBOARD_DEMO=ON`，编译后会生成 `VirtualKeyboardDemo` 可执行文件，包含中文注释的使用示例：
+
+```bash
+mkdir -p build && cd build
+cmake .. -DBUILD_VIRTUAL_KEYBOARD_DEMO=ON
+cmake --build .
+./VirtualKeyboardDemo
+```
+
+演示窗口支持：
+
+- 监听真实键盘并呈现高亮渐隐。
+- “模拟按键”按钮触发 `recordKey`，便于快速观察热力图变化。
+- “清空统计”按钮调用 `clearStatistics`，重置计数与热力图。
