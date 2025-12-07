@@ -3,10 +3,14 @@
 #include <QPushButton>
 #include <QTimer>
 
+#include <QPixmap>
+
 // 单个按键按钮，负责热力图着色、高亮渐隐等效果
 class KeyButton : public QPushButton {
     Q_OBJECT
     Q_PROPERTY(qreal glowLevel READ glowLevel WRITE setGlowLevel NOTIFY glowLevelChanged)
+    Q_PROPERTY(QPixmap backgroundPixmap READ backgroundPixmap WRITE setBackgroundPixmap NOTIFY backgroundPixmapChanged)
+    Q_PROPERTY(QString backgroundImagePath READ backgroundImagePath WRITE setBackgroundImagePath NOTIFY backgroundImagePathChanged)
 public:
     // 构造函数，text 为显示文本
     explicit KeyButton(const QString &text = QString(), QWidget *parent = nullptr);
@@ -21,12 +25,20 @@ public:
     void setHighlightColor(const QColor &color);
     // 设置基础文本颜色（在混合色上保持可读性）
     void setBaseTextColor(const QColor &color);
+    // 为按键设置背景图片（可用于热图纹理化展示）
+    void setBackgroundPixmap(const QPixmap &pixmap);
+    const QPixmap &backgroundPixmap() const { return m_backgroundPixmap; }
+    // 便于在 Qt Designer 直接指定图片路径
+    void setBackgroundImagePath(const QString &path);
+    QString backgroundImagePath() const { return m_backgroundImagePath; }
 
     qreal glowLevel() const { return m_glowLevel; }
     void setGlowLevel(qreal level);
 
 signals:
     void glowLevelChanged(qreal level);
+    void backgroundPixmapChanged(const QPixmap &pixmap);
+    void backgroundImagePathChanged(const QString &path);
 
 private slots:
     void onFadeStep();
@@ -34,6 +46,8 @@ private slots:
 private:
     // 更新视觉效果（样式表）
     void updateVisualState();
+    // 自定义绘制，确保背景图片与热力图颜色叠加
+    void paintEvent(QPaintEvent *event) override;
     // 颜色线性插值
     QColor mixColor(const QColor &a, const QColor &b, qreal factor) const;
 
@@ -47,6 +61,10 @@ private:
     QColor m_highlightColor {QColor(255, 51, 102)};
     // 文本基础色
     QColor m_textColor {Qt::white};
+    // 按键背景图
+    QPixmap m_backgroundPixmap;
+    // 背景图路径（便于序列化）
+    QString m_backgroundImagePath;
     // 当前按键计数
     int m_heat {0};
     // 全局最大计数

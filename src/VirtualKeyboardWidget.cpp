@@ -85,16 +85,27 @@ VirtualKeyboardWidget::VirtualKeyboardWidget(QWidget *parent)
     m_layout->setSpacing(4);
     m_layout->setContentsMargins(6, 6, 6, 6);
     setLayout(m_layout);
+    // 自适应缩放：行列均设置拉伸因子，保证放大缩小时布局比例一致
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     // 创建所有键位并添加到布局
     QList<QList<KeySpec>> rows = {makeTopRow(), makeNumberRow(), makeQRow(), makeARow(), makeZRow(), makeBottomRow()};
 
+    int maxColumns = 0;
     for (int row = 0; row < rows.size(); ++row) {
         int column = 0;
         for (const auto &spec : rows[row]) {
             addKey(row, column, spec);
             column += spec.columnSpan;
         }
+        maxColumns = std::max(maxColumns, column);
+        // 行拉伸，保持纵向比例
+        m_layout->setRowStretch(row, 1);
+    }
+
+    // 列拉伸，保持横向比例
+    for (int col = 0; col < maxColumns; ++col) {
+        m_layout->setColumnStretch(col, 1);
     }
 
     // 默认字体与大小
@@ -167,6 +178,34 @@ void VirtualKeyboardWidget::setKeyFont(const QFont &font) {
     }
 }
 
+void VirtualKeyboardWidget::setKeyBackgroundImage(int qtKey, const QString &imagePath) {
+    // 载入并分发指定按键的背景图
+    QPixmap pixmap(imagePath);
+    m_keyBackgrounds.insert(qtKey, pixmap);
+    setKeyBackgroundPixmap(qtKey, pixmap);
+}
+
+void VirtualKeyboardWidget::setKeyBackgroundPixmap(int qtKey, const QPixmap &pixmap) {
+    m_keyBackgrounds.insert(qtKey, pixmap);
+    const auto buttons = m_keyButtons.values(qtKey);
+    for (auto button : buttons) {
+        if (button) {
+            button->setBackgroundPixmap(pixmap);
+        }
+    }
+}
+
+void VirtualKeyboardWidget::clearKeyBackgroundImage(int qtKey) {
+    m_keyBackgrounds.remove(qtKey);
+    const auto buttons = m_keyButtons.values(qtKey);
+    for (auto button : buttons) {
+        if (button) {
+            button->setBackgroundPixmap(QPixmap());
+            button->setBackgroundImagePath(QString());
+        }
+    }
+}
+
 void VirtualKeyboardWidget::recordKey(int qtKey) {
     if (!m_keyButtons.contains(qtKey)) {
         return;
@@ -212,6 +251,11 @@ void VirtualKeyboardWidget::addKey(int row, int column, const KeySpec &spec) {
 
     m_layout->addWidget(button, row, column, spec.rowSpan, spec.columnSpan);
     m_keyButtons.insertMulti(spec.qtKey, button);
+
+    // 若已有背景贴图配置则立即应用，保证设计期/运行期一致
+    if (m_keyBackgrounds.contains(spec.qtKey)) {
+        button->setBackgroundPixmap(m_keyBackgrounds.value(spec.qtKey));
+    }
 
     // 点击虚拟键也会产生一次记录
     connect(button, &QPushButton::clicked, this, [this, spec]() {

@@ -3,6 +3,8 @@
 #include <QLabel>
 #include <QMainWindow>
 #include <QPushButton>
+#include <QPainter>
+#include <QPixmap>
 #include <QTimer>
 
 #include "VirtualKeyboardWidget.h"
@@ -47,6 +49,29 @@ public:
         });
         rightLayout->addWidget(simulate);
 
+        auto *toggleTexture = new QPushButton(tr("切换空格键背景"), rightPanel);
+        connect(toggleTexture, &QPushButton::clicked, this, [this]() {
+            // 创建一张示例纹理，用于展示背景图与热力图叠加效果
+            if (!m_textured) {
+                QPixmap texture(120, 120);
+                texture.fill(QColor(40, 40, 60));
+                QPainter painter(&texture);
+                painter.setPen(Qt::NoPen);
+                painter.setBrush(QColor(200, 90, 140, 180));
+                painter.drawEllipse(QPointF(60, 60), 50, 50);
+                painter.setBrush(QColor(90, 140, 220, 160));
+                painter.drawRect(10, 10, 100, 30);
+                painter.end();
+
+                m_keyboard->setKeyBackgroundPixmap(Qt::Key_Space, texture);
+                m_textured = true;
+            } else {
+                m_keyboard->clearKeyBackgroundImage(Qt::Key_Space);
+                m_textured = false;
+            }
+        });
+        rightLayout->addWidget(toggleTexture);
+
         auto *clear = new QPushButton(tr("清空统计"), rightPanel);
         connect(clear, &QPushButton::clicked, m_keyboard, &VirtualKeyboardWidget::clearStatistics);
         rightLayout->addWidget(clear);
@@ -66,6 +91,7 @@ public:
 
 private:
     VirtualKeyboardWidget *m_keyboard {nullptr};
+    bool m_textured {false};
 };
 
 int main(int argc, char *argv[]) {

@@ -6,6 +6,7 @@
 #include <QGridLayout>
 #include <QHash>
 #include <QPointer>
+#include <QPixmap>
 #include <QWidget>
 
 // 键位布局描述，用于生成整排键
@@ -53,6 +54,11 @@ public:
 
     // 配置键帽字体
     void setKeyFont(const QFont &font);
+    // 为指定按键设置自定义背景图（可用于替换默认热图色块）
+    void setKeyBackgroundImage(int qtKey, const QString &imagePath);
+    void setKeyBackgroundPixmap(int qtKey, const QPixmap &pixmap);
+    // 清除指定按键的自定义背景图
+    void clearKeyBackgroundImage(int qtKey);
 
 public slots:
     // 记录一次按键（外部调用或内部点击）
@@ -88,4 +94,6 @@ private:
     QColor m_highlightColor {QColor(255, 65, 130)};
     // 键帽字体
     QFont m_keyFont;
+    // 每个按键可选的背景贴图
+    QHash<int, QPixmap> m_keyBackgrounds;
 };
