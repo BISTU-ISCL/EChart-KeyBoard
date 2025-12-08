@@ -4,6 +4,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLayout>
+#include <QResizeEvent>
 
 #include <algorithm>
 
@@ -113,6 +114,9 @@ VirtualKeyboardWidget::VirtualKeyboardWidget(QWidget *parent)
     setMinimumWidth(720);
     setMinimumHeight(260);
 
+    // 初次应用自适应策略，确保缩放时文字与画面比例保持稳定
+    applyAutoScale();
+
     // 需要监听硬件键盘时安装事件过滤器
     if (m_trackPhysicalKeyboard) {
         qApp->installEventFilter(this);
@@ -168,6 +172,15 @@ void VirtualKeyboardWidget::setHighlightColor(const QColor &color) {
     }
 }
 
+void VirtualKeyboardWidget::setAutoScaleContent(bool enabled) {
+    // 控制是否随尺寸自适应调整字体
+    if (m_autoScaleContent == enabled) {
+        return;
+    }
+    m_autoScaleContent = enabled;
+    applyAutoScale();
+}
+
 void VirtualKeyboardWidget::setKeyFont(const QFont &font) {
     m_keyFont = font;
     // 同步字体到所有键
@@ -176,6 +189,7 @@ void VirtualKeyboardWidget::setKeyFont(const QFont &font) {
             button->setFont(font);
         }
     }
+    applyAutoScale();
 }
 
 void VirtualKeyboardWidget::setKeyBackgroundImage(int qtKey, const QString &imagePath) {
@@ -242,6 +256,12 @@ bool VirtualKeyboardWidget::eventFilter(QObject *watched, QEvent *event) {
     return QWidget::eventFilter(watched, event);
 }
 
+void VirtualKeyboardWidget::resizeEvent(QResizeEvent *event) {
+    QWidget::resizeEvent(event);
+    // 尺寸改变时调整字体，保持缩放后视觉一致
+    applyAutoScale();
+}
+
 void VirtualKeyboardWidget::addKey(int row, int column, const KeySpec &spec) {
     auto *button = new KeyButton(spec.label, this);
     button->setFont(m_keyFont);
@@ -281,5 +301,29 @@ void VirtualKeyboardWidget::refreshHeatMap() {
         int count = m_heatMapEnabled ? m_heatCounter.value(key, 0) : 0;
         button->setHeat(count, maxCount);
         button->setHeatColors(m_coldColor, m_hotColor);
+    }
+}
+
+void VirtualKeyboardWidget::applyAutoScale() {
+    // 若关闭自适应，则保持用户指定字体不变
+    if (!m_autoScaleContent) {
+        return;
+    }
+
+    // 基于行数估算单键高度，按比例设置像素字体大小，使缩放时文字与画面比例一致
+    const int rowCount = 6;
+    const QMargins margins = m_layout->contentsMargins();
+    const int availableH = std::max(height() - (margins.top() + margins.bottom())
+                                      - static_cast<int>(m_layout->spacing()) * (rowCount - 1),
+                                  1);
+    const int keyHeight = std::max(availableH / rowCount, 12);
+    const int pixelSize = std::clamp(static_cast<int>(keyHeight * 0.45), 9, 28);
+
+    QFont scaledFont = m_keyFont;
+    scaledFont.setPixelSize(pixelSize);
+    for (auto button : m_keyButtons) {
+        if (button) {
+            button->setFont(scaledFont);
+        }
     }
 }

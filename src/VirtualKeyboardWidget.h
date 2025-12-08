@@ -24,6 +24,7 @@ class VirtualKeyboardWidget : public QWidget {
     Q_PROPERTY(QColor coldColor READ coldColor WRITE setColdColor)
     Q_PROPERTY(QColor hotColor READ hotColor WRITE setHotColor)
     Q_PROPERTY(QColor highlightColor READ highlightColor WRITE setHighlightColor)
+    Q_PROPERTY(bool autoScaleContent READ autoScaleContent WRITE setAutoScaleContent)
 public:
     // 构造与析构
     explicit VirtualKeyboardWidget(QWidget *parent = nullptr);
@@ -52,6 +53,10 @@ public:
     // 设置高亮颜色
     void setHighlightColor(const QColor &color);
 
+    bool autoScaleContent() const { return m_autoScaleContent; }
+    // 控制是否随控件尺寸自适应缩放字体与间距
+    void setAutoScaleContent(bool enabled);
+
     // 配置键帽字体
     void setKeyFont(const QFont &font);
     // 为指定按键设置自定义背景图（可用于替换默认热图色块）
@@ -71,12 +76,16 @@ public slots:
 protected:
     // 监听全局按键事件，响应硬件键盘
     bool eventFilter(QObject *watched, QEvent *event) override;
+    // 根据窗口大小动态调整字体大小，保证缩放时视觉一致
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     // 创建一个键并放入布局
     void addKey(int row, int column, const KeySpec &spec);
     // 根据计数刷新热力图与按钮状态
     void refreshHeatMap();
+    // 自适应字体与间距
+    void applyAutoScale();
 
     QGridLayout *m_layout {nullptr};
     // Qt::Key -> 对应 KeyButton
@@ -94,6 +103,8 @@ private:
     QColor m_highlightColor {QColor(255, 65, 130)};
     // 键帽字体
     QFont m_keyFont;
+    // 是否启用自适应缩放
+    bool m_autoScaleContent {true};
     // 每个按键可选的背景贴图
     QHash<int, QPixmap> m_keyBackgrounds;
 };

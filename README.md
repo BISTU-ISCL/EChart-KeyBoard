@@ -4,7 +4,7 @@
 
 ## 构建
 
-项目使用 CMake，**限定 Qt 5.15.2** 环境，便于在 Qt 5.15.2 版 Designer 中直接加载插件。
+项目使用 CMake，**限定 Windows 下 Qt 6.10.0（MSVC 2022 64bit Release，Qt Creator 18.0.0）** 环境，便于在 Qt 6 版 Designer 中直接加载插件。
 
 ```bash
 mkdir -p build && cd build
@@ -12,13 +12,20 @@ cmake ..
 cmake --build .
 ```
 
-默认会生成 `VirtualKeyboardWidget` 静态库；若找到 Qt Designer 模块（Qt 5.15.2），还会同时生成可在设计器调色板中拖拽的 `VirtualKeyboardPlugin`。
+默认会生成 `VirtualKeyboardWidget` 静态库；若找到 Qt 6 Designer 模块，还会同时生成可在设计器调色板中拖拽的 `VirtualKeyboardPlugin`。
 
 若要让 Designer 自动识别该控件，请在安装阶段将插件复制或安装到 Qt 的 `plugins/designer` 目录，可通过变量 `QT_DESIGNER_PLUGIN_PATH` 定制：
 
 ```bash
 cmake .. -DQT_DESIGNER_PLUGIN_PATH=/path/to/Qt/plugins/designer
 cmake --build . --target install
+```
+
+在 Windows + Qt 6.10.0 + MSVC 2022 64bit Release 环境下，可按如下方式指定 Qt 前缀路径并安装插件（Qt Creator 18.0.0 内使用）：
+
+```bash
+cmake .. -DCMAKE_PREFIX_PATH="C:/Qt/6.10.0/msvc2022_64" -DQT_DESIGNER_PLUGIN_PATH="C:/Qt/6.10.0/msvc2022_64/plugins/designer"
+cmake --build . --config Release --target install
 ```
 
 ## 属性与接口（VirtualKeyboardWidget）
@@ -32,11 +39,12 @@ cmake --build . --target install
 | `coldColor` | `QColor` | 热力图最低频率颜色 | `QColor(18, 26, 38)` |
 | `hotColor` | `QColor` | 热力图最高频率颜色 | `QColor(126, 192, 255)` |
 | `highlightColor` | `QColor` | 按键被触发时的高亮颜色 | `QColor(255, 65, 130)` |
+| `autoScaleContent` | `bool` | 是否根据控件尺寸自动调整字体像素大小与间距，保证缩放时比例稳定不失真 | `true` |
 | `backgroundImagePath`（KeyButton） | `QString` | 单个键帽的背景图片路径，可在 Designer 中指定，用于纹理化热图 | 空 |
 
 常用接口（方法/槽）：
 
-- `void setKeyFont(const QFont &font)`: 设置键帽字体。
+- `void setKeyFont(const QFont &font)`: 设置键帽字体，若 `autoScaleContent` 为真，会在缩放时按比例调整像素大小。
 - `void setKeyBackgroundImage(int qtKey, const QString &imagePath) / setKeyBackgroundPixmap(int qtKey, const QPixmap &pixmap)`: 为某个 Qt::Key 键设置专属背景贴图，保留热图与高亮混色。
 - `void clearKeyBackgroundImage(int qtKey)`: 清除指定键的背景贴图。
 - `void recordKey(int qtKey)`: 手动记录一次按键（如远端事件或回放）。
@@ -49,7 +57,7 @@ cmake --build . --target install
 - 高亮渐隐：任何一次按键调用 `recordKey` 或硬件键入都会触发对应键帽的光晕动画，亮度随时间衰减。
 - 热力图：`heatMapEnabled` 打开时，按键背景会按累计计数在 `coldColor` 与 `hotColor` 之间插值；计数越高颜色越接近 `hotColor`。若为单个键设置背景图片，将在图片上叠加热图和高亮色。
 - 字体/文本色：通过 `setKeyFont` 调整键帽字体，颜色会在内部根据热力图和高亮混合，保持可读性。
-- 自适应缩放：网格行列均设置拉伸因子，控件缩放时键帽比例保持一致，字体采用固定像素大小以避免随缩放模糊。
+- 自适应缩放：网格行列均设置拉伸因子，控件缩放时键帽比例保持一致；`autoScaleContent` 开启后会根据高度动态设置字体像素大小，缩放时文字与画面比例保持稳定，不受外部放大缩小影响。
 
 ## 使用示例
 

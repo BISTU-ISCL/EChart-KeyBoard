@@ -12,12 +12,9 @@ option(BUILD_VIRTUAL_KEYBOARD_DEMO "Build demo application for VirtualKeyboardWi
 # 控件要求可被 Qt Designer 直接加载，因此提供可配置的插件安装目录，方便部署到设计器的组件库
 set(QT_DESIGNER_PLUGIN_PATH "${CMAKE_INSTALL_PREFIX}/plugins/designer" CACHE PATH "Install path for Qt Designer plugins")
 
-# 本项目限定 Qt 5.15.2 环境，强制查找 Qt5 组件以保证 Designer 兼容性
-find_package(QT NAMES Qt5 REQUIRED COMPONENTS Widgets Gui)
-find_package(Qt5 5.15.2 REQUIRED COMPONENTS Widgets Gui)
-
-# Designer 插件可选，若找到 Qt Designer 模块则编译并在设计器中暴露控件
-find_package(Qt5 COMPONENTS Designer QUIET)
+# 本项目限定 Windows 下 Qt 6.10.0 + MSVC 2022 64bit 环境，强制查找 Qt6 组件保证 Designer 可加载
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Gui Designer)
+find_package(Qt6 6.10.0 REQUIRED COMPONENTS Widgets Gui Designer)
 
 add_library(VirtualKeyboardWidget STATIC
     src/KeyButton.cpp
@@ -29,8 +26,8 @@ target_include_directories(VirtualKeyboardWidget PUBLIC
 )
 
 target_link_libraries(VirtualKeyboardWidget PUBLIC
-    Qt5::Widgets
-    Qt5::Gui
+    Qt6::Widgets
+    Qt6::Gui
 )
 
 target_compile_definitions(VirtualKeyboardWidget PRIVATE
@@ -44,17 +41,17 @@ if (BUILD_VIRTUAL_KEYBOARD_DEMO)
     )
     target_link_libraries(VirtualKeyboardDemo PRIVATE
         VirtualKeyboardWidget
-        Qt5::Widgets
+        Qt6::Widgets
     )
 endif()
 
-if (Qt5Designer_FOUND)
+if (Qt6Designer_FOUND)
     add_library(VirtualKeyboardPlugin MODULE
         src/VirtualKeyboardPlugin.cpp
     )
     target_link_libraries(VirtualKeyboardPlugin PRIVATE
         VirtualKeyboardWidget
-        Qt5::Designer
+        Qt6::Designer
     )
     set_target_properties(VirtualKeyboardPlugin PROPERTIES
         OUTPUT_NAME "VirtualKeyboardPlugin"
